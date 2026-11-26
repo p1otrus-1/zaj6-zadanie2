@@ -1,4 +1,4 @@
-from src.models import Bill, Parameters, TenantSettlement, ApartmentSettlement, Transfer
+from src.models import Bill, Parameters, TenantSettlement, ApartmentSettlement, Transfer, Tenant
 from src.manager import Manager
 
 
@@ -85,3 +85,80 @@ def test_apartment_has_any_bills():
 
     has_bills = manager.has_any_bills('apart-polanka', 2025, 3)
     assert has_bills == False
+
+def test_validate_transfer():
+    manager = Manager(Parameters())
+    manager.tenants["tenant-4"] = Tenant(
+        name = "Kamil Zieliński",
+        apartment = "apart-polanka",
+        room = "room-bigger",
+        rent_pln = 2000.0,
+        deposit_pln = 4000.0,
+        date_agreement_from = "2025-01-01",
+        date_agreement_to = "2025-12-31"
+    )
+
+    #transfer with no mistakes
+    good_transfer = Transfer(
+        amount_pln = 2000.0,
+        date = "2025-01-10",
+        settlement_year = 2025,
+        settlement_month = 1,
+        tenant = "tenant-4",
+        type = "rent"
+        )
+    manager.transfers.append(good_transfer)
+
+    assert manager.validate_transfer(good_transfer) == (True, "No errors")
+
+    #Transfer with wrong settlement month
+    wrong_month_transfer = Transfer(
+        amount_pln = 2000.0,
+        date = "2025-01-01",
+        settlement_year = 2025,
+        settlement_month = 13,
+        tenant = "tenant-4",
+        type = "rent"
+        )
+    manager.transfers.append(wrong_month_transfer)
+
+    assert manager.validate_transfer(wrong_month_transfer) == (False, "Wrong settlement month")
+
+    #Transfer with negative amount
+    negative_amount_transfer = Transfer(
+            amount_pln = -2000.0,
+            date = "2025-01-01",
+            settlement_year = 2025,
+            settlement_month = 13,
+            tenant = "tenant-4",
+            type = "anti-rent"
+            )
+    manager.transfers.append(negative_amount_transfer)
+
+    assert manager.validate_transfer(negative_amount_transfer) == (False, "Negative amount")
+
+    #transfer with no tenant
+    no_tenant_transfer = Transfer(
+        amount_pln = 1000.0,
+        date = "2025-01-01",
+        settlement_year = 2025,
+        settlement_month = 1,
+        tenant = "tenant-999",
+        type = "rent"
+        )
+    manager.transfers.append(no_tenant_transfer)
+    
+    assert manager.validate_transfer(no_tenant_transfer) == (False, "Tenant doesn't exist")
+
+    #transfer out of tenant agreement
+    out_of_agreement_transfer = Transfer(
+        amount_pln = 1000.0,
+        date = "2026-01-01",
+        settlement_year = 2026,
+        settlement_month = 1,
+        tenant = "tenant-4",
+        type = "rent"
+        )
+    manager.transfers.append(out_of_agreement_transfer)
+    
+    assert manager.validate_transfer(out_of_agreement_transfer) == (False,"Transfer out of tenant agreement")

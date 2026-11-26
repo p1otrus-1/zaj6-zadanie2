@@ -116,3 +116,7 @@ class Manager:
         if apartment_key not in self.apartments:
             raise ValueError("Apartment key does not exist")
         return any([bill for bill in self.bills if bill.apartment == apartment_key and bill.settlement_year == year and bill.settlement_month == month])
+
+    def validate_transfer(self, transfer: Transfer) -> tuple[bool,str]: # (is transfer correct, what is wrong)
+        #TODO: implement transfer validation by Person 2
+        return (True,"No errors")
